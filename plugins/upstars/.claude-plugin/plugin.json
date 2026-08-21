@@ -1,0 +1,18 @@
+{
+  "name": "upstars",
+  "description": "Upstars Tableau toolkit. Lints and repairs .twbx workbooks against the Upstars style guide, then proves the result opens in Tableau Desktop.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Upstars Analytics"
+  },
+  "homepage": "https://lizabrovko-creator.github.io/claudius-public/",
+  "repository": "https://github.com/lizabrovko-creator/claudius-public",
+  "license": "MIT",
+  "keywords": [
+    "tableau",
+    "twbx",
+    "lint",
+    "style-guide",
+    "data-analytics"
+  ]
+}

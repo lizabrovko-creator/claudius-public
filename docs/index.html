@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>twbx-lint — Upstars</title>
+<meta name="description" content="Лінтер і «ремонтник» Tableau-воркбуків (.twbx) за стайлгайдом Upstars. Виправляє і доводить, що результат відкриється в Tableau Desktop.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&amp;family=Unbounded:wght@600;800&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FCFCFE;
+    --surface: #D9D8FF;
+    --code-bg: #F4F3FB;
+    --ink: #150B2E;
+    --muted: #5B5568;
+    --brand: #5535BE;
+    --brand-2: #210E5F;
+    --brand-fg: #FFFFFF;
+    --line: #CECED6;
+    --ok-bg: #3FB587;
+    --ok-fg: #01001F;
+    --warn: #E0A030;
+    --warn-wash: rgba(224, 160, 48, .10);
+    --header-bg: #01001F;
+    --header-fg: #FFFFFF;
+    --cut: 16px 0 16px 16px;
+    --font-display: 'Unbounded', 'Arial Narrow', sans-serif;
+    --font-body: 'Golos Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono', Consolas, 'Liberation Mono', monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* --surface is deliberately NOT overridden here: the proof card
+         keeps the guide's exact info-popover tint (#D9D8FF) with dark
+         ink text in both themes, the same way the masthead keeps its
+         dark bar in both themes — two fixed brand anchors bookending
+         the page instead of four colours that all swap together. */
+      --bg: #01001F;
+      --code-bg: #0E0828;
+      --ink: #F1EEFB;
+      --muted: #B4AFD9;
+      --brand: #928EEC;
+      --brand-2: #D9D8FF;
+      --brand-fg: #01001F;
+      --line: rgba(217, 216, 255, .18);
+      --warn-wash: rgba(224, 160, 48, .16);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, p, dl, dd, ul { margin: 0; }
+  ul { padding: 0; list-style: none; }
+  a { color: var(--brand); text-decoration-color: currentColor; }
+  a:hover { color: var(--brand-2); }
+  code {
+    font-family: var(--font-mono);
+    font-size: .92em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: .1em .35em;
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 3px;
+  }
+
+  .container {
+    max-width: 1080px;
+    margin-inline: auto;
+    padding-inline: clamp(20px, 5vw, 64px);
+  }
+
+  /* ---------- masthead: quotes the guide's own §2 header spec
+     (dark bar, bold title, small links right) — always this color,
+     in both page themes, since the real dashboards never change it. */
+  .masthead {
+    background: var(--header-bg);
+    color: var(--header-fg);
+    /* The bar itself never changes with the theme, but the page behind
+       it does — in dark mode --bg becomes this same colour, so this
+       hairline is the only remaining seam between the two. */
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+  }
+  .masthead-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+  .wordmark {
+    font-family: var(--font-mono);
+    font-size: .95rem;
+    letter-spacing: .01em;
+  }
+  .wordmark strong { font-weight: 700; }
+  .wordmark-sep { opacity: .5; margin: 0 .15em; }
+  .masthead-link {
+    font-family: var(--font-mono);
+    font-size: .85rem;
+    color: var(--header-fg);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 2px;
+    transition: border-color .15s ease;
+  }
+  .masthead-link:hover, .masthead-link:focus-visible {
+    color: var(--header-fg);
+    border-bottom-color: var(--header-fg);
+  }
+
+  /* ---------- hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: clamp(32px, 5vw, 72px);
+    align-items: start;
+    padding-block: clamp(56px, 8vw, 104px) 72px;
+    animation: rise .5s ease both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    font-weight: 500;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--brand);
+    margin-bottom: 18px;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(2rem, 1.35rem + 2.6vw, 3.1rem);
+    line-height: 1.14;
+    letter-spacing: -.01em;
+    max-width: 15ch;
+  }
+  h1 code {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    background: none;
+    padding: 0;
+    font-size: .82em;
+  }
+  h1 .accent { color: var(--brand); display: inline-block; margin-top: .15em; }
+  .dek {
+    margin-top: 26px;
+    max-width: 56ch;
+    font-size: 1.125rem;
+    line-height: 1.65;
+    color: var(--muted);
+  }
+  .dek code { color: var(--ink); }
+  .cta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .4em;
+    margin-top: 32px;
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: .95rem;
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--brand);
+    padding-bottom: 3px;
+  }
+  .cta:hover, .cta:focus-visible { color: var(--brand); }
+
+  /* ---------- proof card: the signature element.
+     Corner cut (16px, top-right square) and the info-popover tint
+     (#D9D8FF) are lifted directly from the style guide's own §2 spec
+     for the Info popup — not invented, quoted. */
+  .proof {
+    background: var(--surface);
+    border-radius: var(--cut);
+    padding: 22px 24px 20px;
+  }
+  .proof-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    font-family: var(--font-mono);
+    font-size: .92rem;
+    padding-block: 9px;
+  }
+  /* Fixed dark-on-light divider: the card's background is always the
+     light tint above, in both page themes (see the --surface note). */
+  .proof-row + .proof-row { border-top: 1px solid rgba(1, 0, 31, .12); }
+  .proof-key { color: #150B2E; opacity: .68; }
+  .proof-val { color: #150B2E; font-weight: 600; }
+  .badge {
+    background: var(--ok-bg);
+    color: var(--ok-fg);
+    font-weight: 700;
+    letter-spacing: .03em;
+    border-radius: 5px;
+    padding: .15em .55em;
+  }
+  .proof-caption {
+    margin-top: 16px;
+    font-size: .84rem;
+    line-height: 1.55;
+    color: #150B2E;
+    opacity: .72;
+  }
+
+  /* ---------- sections ---------- */
+  .block {
+    border-top: 1px solid var(--line);
+    padding-block: 56px;
+  }
+  .lead {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 34px 0 18px;
+  }
+  .note {
+    margin-top: 14px;
+    color: var(--muted);
+    font-size: .95rem;
+    line-height: 1.6;
+    max-width: 62ch;
+  }
+  .note strong { color: var(--ink); }
+  .rule {
+    margin-top: 22px;
+    font-weight: 600;
+    max-width: 62ch;
+    line-height: 1.6;
+  }
+
+  /* ---------- copyable command blocks ---------- */
+  .cmd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--code-bg);
+    border-radius: var(--cut);
+    padding: 14px 14px 14px 20px;
+    margin-top: 14px;
+    max-width: 62ch;
+  }
+  .cmd code {
+    background: none;
+    padding: 0;
+    font-size: .95rem;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .copy {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: .78rem;
+    font-weight: 500;
+    letter-spacing: .02em;
+    color: var(--brand);
+    background: transparent;
+    border: 1px solid var(--brand);
+    border-radius: 5px;
+    padding: 7px 12px;
+    cursor: pointer;
+    transition: background-color .15s ease, color .15s ease;
+  }
+  .copy:hover { background: var(--brand); color: var(--brand-fg); }
+  .copy.copied { background: var(--ok-bg); border-color: var(--ok-bg); color: var(--ok-fg); }
+
+  /* ---------- checklist grid: real §-sections of the tool's own
+     contract (A typography / B color / C layout / D behaviour) —
+     not decorative numbering. */
+  .checklist {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--line);
+    border-radius: var(--cut);
+    overflow: hidden;
+    max-width: 62ch;
+  }
+  .check-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 14px;
+    font-size: .88rem;
+    color: var(--muted);
+  }
+  .check-cell + .check-cell { border-left: 1px solid var(--line); }
+  .check-letter {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: var(--brand);
+  }
+
+  /* ---------- requirements ---------- */
+  .callout {
+    background: var(--warn-wash);
+    border-left: 3px solid var(--warn);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    max-width: 62ch;
+    line-height: 1.6;
+  }
+  .reqs { margin-top: 22px; max-width: 62ch; }
+  .reqs li { padding: 10px 0; border-top: 1px solid var(--line); line-height: 1.55; }
+  .reqs li:first-child { border-top: none; }
+
+  /* ---------- three test tiers: a genuine escalating sequence,
+     so numbering it is information, not decoration. ---------- */
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    margin-top: 24px;
+    max-width: 74ch;
+  }
+  .tier {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px 20px;
+  }
+  .tier + .tier { border-left: 1px solid var(--line); }
+  .tier-num {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--brand);
+  }
+  .tier-name { font-weight: 600; }
+  .tier-cmd {
+    display: inline-block;
+    width: fit-content;
+    font-size: .78rem;
+  }
+  .tier-meta {
+    font-family: var(--font-mono);
+    font-size: .76rem;
+    color: var(--muted);
+  }
+
+  /* ---------- footer ---------- */
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block: 32px 48px;
+    font-size: .85rem;
+    color: var(--muted);
+  }
+  .footer a { color: var(--muted); }
+  .footer a:hover, .footer a:focus-visible { color: var(--brand); }
+
+  @media (max-width: 760px) {
+    .hero { grid-template-columns: 1fr; }
+    h1 { max-width: none; }
+    .checklist { grid-template-columns: repeat(2, 1fr); }
+    .check-cell:nth-child(2) { border-left: 1px solid var(--line); }
+    .check-cell:nth-child(3) { border-left: none; border-top: 1px solid var(--line); }
+    .check-cell:nth-child(4) { border-top: 1px solid var(--line); }
+    .tiers { grid-template-columns: 1fr; gap: 20px; }
+    .tier + .tier { border-left: none; border-top: 1px solid var(--line); padding-top: 20px; }
+    .cmd { flex-direction: column; align-items: stretch; }
+    .copy { align-self: flex-start; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero { animation: none; }
+    .copy, .cta, a, .masthead-link { transition: none; }
+  }
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead-inner container">
+    <span class="wordmark"><strong>upstars</strong><span class="wordmark-sep">/</span>twbx-lint</span>
+    <a class="masthead-link" href="https://github.com/lizabrovko-creator/claudius-public">GitHub <span aria-hidden="true">↗</span></a>
+  </div>
+</header>
+
+<main>
+  <section class="hero container">
+    <div class="hero-text">
+      <p class="eyebrow">Скіл для Claude Code</p>
+      <h1>Виправляє <code>.twbx</code> за стайлгайдом Upstars —<br>
+        <span class="accent">і доводить, що він відкриється в Tableau.</span></h1>
+      <p class="dek">
+        twbx-lint — скіл для <a href="https://code.claude.com">Claude Code</a>.
+        Він приводить Tableau-дашборди у відповідність до стайлгайду Upstars —
+        типографіку, кольори, макет, поведінку фільтрів — і перевіряє результат,
+        реально відкривши його в Tableau Desktop, а не лише проглянувши XML.
+        Оригінал у <code>dummy/</code> лишається байт-у-байт незмінним.
+      </p>
+      <a class="cta" href="#install">Встановити <span aria-hidden="true">↓</span></a>
+    </div>
+    <aside class="proof" aria-label="Приклад останніх рядків звіту скіла">
+      <div class="proof-row"><span class="proof-key">ВАЛІДАЦІЯ</span><span class="badge">PASS</span></div>
+      <div class="proof-row"><span class="proof-key">TABLEAU</span><span class="badge">OK</span></div>
+      <div class="proof-row"><span class="proof-key">dummy/</span><span class="proof-val">не змінено</span></div>
+      <p class="proof-caption">Останні рядки справжнього звіту скіла — без обох PASS і OK він не вважає роботу завершеною.</p>
+    </aside>
+  </section>
+
+  <section class="block" id="install">
+    <p class="eyebrow">Встановлення</p>
+    <div class="cmd">
+      <code>/plugin marketplace add lizabrovko-creator/claudius-public</code>
+      <button class="copy" type="button" data-copy="/plugin marketplace add lizabrovko-creator/claudius-public" aria-label="Скопіювати команду">Копіювати</button>
+    </div>
+    <div class="cmd">
+      <code>/plugin install upstars@claudius</code>
+      <button class="copy" type="button" data-copy="/plugin install upstars@claudius" aria-label="Скопіювати команду">Копіювати</button>
+    </div>
+    <p class="note">Якщо Claude Code напише «Run /reload-plugins to activate.» — виконай <code>/reload-plugins</code>.</p>
+    <p class="note">Працює лише на <strong>macOS</strong> — детальніше в розділі <a href="#vymohy">«Вимоги»</a> нижче.</p>
+  </section>
+
+  <section class="block" id="usage">
+    <p class="eyebrow">Щоденне використання</p>
+    <div class="cmd">
+      <code>/upstars:twbx-lint dummy/my-dashboard.twbx</code>
+      <button class="copy" type="button" data-copy="/upstars:twbx-lint dummy/my-dashboard.twbx" aria-label="Скопіювати команду">Копіювати</button>
+    </div>
+    <p class="note">Поклади файл у <code>dummy/</code> і виклич команду. Без аргументу скіл візьме найновіший <code>.twbx</code> із <code>dummy/</code>.</p>
+
+    <p class="lead">Що покаже звіт наприкінці</p>
+    <div class="checklist">
+      <div class="check-cell"><span class="check-letter">A</span>типографіка</div>
+      <div class="check-cell"><span class="check-letter">B</span>кольори</div>
+      <div class="check-cell"><span class="check-letter">C</span>макет</div>
+      <div class="check-cell"><span class="check-letter">D</span>поведінка</div>
+    </div>
+    <p class="note">
+      Що виправлено; вердикт щодо кожного з цих чотирьох розділів; що лишилось
+      невиправленим і чому; рядок валідації; рядок відкриття в Tableau; і що
+      саме треба підтвердити очима у відкритому вікні.
+    </p>
+  </section>
+
+  <section class="block" id="vymohy">
+    <p class="eyebrow">Вимоги</p>
+    <div class="callout">
+      <p><strong>macOS</strong> — обов'язково. <code>open-verify</code> шукає Tableau Desktop
+      у <code>/Applications</code>; на Windows і Linux команда повертає <code>SKIP</code>,
+      а <code>SKIP</code> — це не успіх, тож довести роботу до кінця там неможливо.</p>
+    </div>
+    <ul class="reqs">
+      <li><strong>Tableau Desktop</strong> — без нього немає фінальної перевірки відкриття.</li>
+      <li><strong>Python 3.10+</strong> — скрипт використовує сучасні анотації типів.</li>
+      <li><strong>xmllint</strong> — на macOS є з коробки; на Linux це пакунок <code>libxml2-utils</code>.</li>
+    </ul>
+  </section>
+
+  <section class="block" id="tests">
+    <p class="eyebrow">Три рівні перевірок</p>
+    <div class="tiers">
+      <div class="tier">
+        <span class="tier-num">1</span>
+        <span class="tier-name">Структура</span>
+        <code class="tier-cmd">claude plugin validate --strict</code>
+        <span class="tier-meta">~0.3 с · автоматично</span>
+      </div>
+      <div class="tier">
+        <span class="tier-num">2</span>
+        <span class="tier-name">Логіка</span>
+        <code class="tier-cmd">pytest</code>
+        <span class="tier-meta">~2 с · автоматично</span>
+      </div>
+      <div class="tier">
+        <span class="tier-num">3</span>
+        <span class="tier-name">Поведінка моделі</span>
+        <code class="tier-cmd">LLM-евали</code>
+        <span class="tier-meta">години, платно · лише вручну</span>
+      </div>
+    </div>
+    <p class="rule">Тести не запускаються під час звичайної роботи. Вони спрацьовують лише коли змінюються вихідники самого скіла.</p>
+    <p class="note">Повний опис розробки, evals і кодів виходу — у <a href="https://github.com/lizabrovko-creator/claudius-public#readme">README репозиторію <span aria-hidden="true">↗</span></a>.</p>
+  </section>
+</main>
+
+<footer class="footer container">
+  <span>MIT-ліцензія</span>
+  <a href="https://github.com/lizabrovko-creator/claudius-public">Репозиторій на GitHub <span aria-hidden="true">↗</span></a>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var buttons = document.querySelectorAll(".copy");
+  buttons.forEach(function (btn) {
+    var original = btn.textContent;
+    btn.addEventListener("click", function () {
+      var text = btn.getAttribute("data-copy") || "";
+
+      function announce() {
+        btn.textContent = "Скопійовано";
+        btn.classList.add("copied");
+        setTimeout(function () {
+          btn.textContent = original;
+          btn.classList.remove("copied");
+        }, 1600);
+      }
+
+      function fallbackCopy() {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "absolute";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          announce();
+        } catch (err) {
+          /* Clipboard unavailable in this context — the command text
+             in the <code> block right next to the button is still
+             selectable by hand, so nothing is actually blocked. */
+        }
+      }
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(announce, fallbackCopy);
+      } else {
+        fallbackCopy();
+      }
+    });
+  });
+})();
+</script>
+</body>
+</html>

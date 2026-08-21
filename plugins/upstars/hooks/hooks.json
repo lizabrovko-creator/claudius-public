@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-dummy.py",
+            "timeout": 10,
+            "statusMessage": "Guarding read-only dummy/ inbox"
+          }
+        ]
+      }
+    ]
+  }
+}

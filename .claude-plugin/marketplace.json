@@ -1,0 +1,22 @@
+{
+  "name": "claudius",
+  "owner": {
+    "name": "Upstars Analytics",
+    "url": "https://github.com/lizabrovko-creator/claudius-public"
+  },
+  "description": "Upstars internal Claude Code tooling for Tableau and data analytics.",
+  "plugins": [
+    {
+      "name": "upstars",
+      "source": "./plugins/upstars",
+      "description": "Lints and repairs .twbx workbooks against the Upstars style guide, then proves the result opens in Tableau Desktop.",
+      "category": "data-analytics",
+      "tags": [
+        "tableau",
+        "twbx",
+        "lint",
+        "style-guide"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+          sudo apt-get update -qq && sudo apt-get install -y libxml2-utils
+
+      # Tier 2 only. Tier 1 needs the claude CLI, which is not available here.
+      # test_cli_validation_passes_strict carries its own skipif guard for that,
+      # so the suite runs clean on a runner without the binary; the local
+      # change hook still exercises tier 1 on every edit. Tier 3 is paid and
+      # nondeterministic and never runs in CI.
+      - name: Run tests
+        run: python -m pytest -q

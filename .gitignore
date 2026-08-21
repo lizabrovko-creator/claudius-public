@@ -1,0 +1,22 @@
+.DS_Store
+__pycache__/
+*.pyc
+
+# Runtime inboxes/outboxes, not repo content (see doctor in twbx_tool.py):
+# README tells users to drop workbooks into dummy/, and every run writes
+# its result into results/. Ignore what lands in them, not the directories
+# themselves - `doctor --fix` (re)creates the directories on a fresh clone.
+dummy/*
+results/*
+
+# Per-developer Claude Code permission cache - carries whatever absolute
+# paths that developer's own session happened to approve.
+.claude/settings.local.json
+
+# Working scratch: 38 MB of binary workbooks, not source
+tmp/
+# Eval iterations after the archived iteration-1. A [2-9] class would stop
+# matching at iteration-10, which is exactly when the directory gets big.
+evals/iteration-*/
+!evals/iteration-1/
+evals/iteration-1/eval-*/

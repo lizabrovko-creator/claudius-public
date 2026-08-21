@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<workbook source-build='2026.2' version='18.1' locale='en_GB'>
+  <datasources>
+    <datasource name='ds1' caption='DS'>
+      <connection class='hyper'/>
+      <column datatype='string' name='[Project]' role='dimension' type='nominal' caption='Project'/>
+    </datasource>
+  </datasources>
+  <worksheets>
+    <worksheet name='Sheet 1'>
+      <layout-options><title><formatted-text><run>Sheet 1</run></formatted-text></title></layout-options>
+    </worksheet>
+  </worksheets>
+  <dashboards>
+    <dashboard name='Dash'>
+      <zones><zone id='1'/></zones>
+    </dashboard>
+  </dashboards>
+</workbook>
